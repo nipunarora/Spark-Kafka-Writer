@@ -1,7 +1,8 @@
-package fi.aalto.spark;
+package kafka;
 
 import java.io.Serializable;
 
+import kafka.kafka.reader.KafkaConsumerPool;
 import org.apache.spark.scheduler.JobListener;
 import org.apache.spark.scheduler.SparkListener;
 import org.apache.spark.scheduler.SparkListenerApplicationEnd;
@@ -22,8 +23,7 @@ import org.apache.spark.scheduler.SparkListenerTaskGettingResult;
 import org.apache.spark.scheduler.SparkListenerTaskStart;
 import org.apache.spark.scheduler.SparkListenerUnpersistRDD;
 
-import fi.aalto.spark.kafka.reader.KafkaConsumerPool;
-import fi.aalto.spark.kafka.writer.KafkaProducerPool;
+import kafka.kafka.writer.KafkaProducerPool;
 
 public class SparkJobListener implements SparkListener, JobListener, Serializable {
 

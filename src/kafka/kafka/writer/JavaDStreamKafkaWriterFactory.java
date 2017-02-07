@@ -1,13 +1,13 @@
-package fi.aalto.spark.kafka.writer;
+package kafka.kafka.writer;
 
 import java.io.Serializable;
 import java.util.Properties;
 
+import kafka.SparkJobListener;
+import kafka.kafka.reader.KafkaConsumerPool;
 import org.apache.spark.streaming.api.java.JavaDStream;
 
 import scala.Tuple2;
-import fi.aalto.spark.SparkJobListener;
-import fi.aalto.spark.kafka.reader.KafkaConsumerPool;
 
 public class JavaDStreamKafkaWriterFactory implements Serializable {
 

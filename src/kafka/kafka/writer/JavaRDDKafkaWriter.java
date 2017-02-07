@@ -1,4 +1,4 @@
-package fi.aalto.spark.kafka.writer;
+package kafka.kafka.writer;
 
 import java.io.Serializable;
 import java.util.Iterator;

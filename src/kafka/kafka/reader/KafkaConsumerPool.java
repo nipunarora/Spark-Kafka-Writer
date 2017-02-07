@@ -1,4 +1,4 @@
-package fi.aalto.spark.kafka.writer;
+package kafka.kafka.reader;
 
 import java.io.Serializable;
 import java.util.Properties;
@@ -7,7 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 
 ;
 
@@ -16,11 +16,11 @@ import org.apache.kafka.clients.producer.KafkaProducer;
  * @author Oleg Varaksin, Farouk Salem
  *
  */
-public class KafkaProducerPool implements Serializable {
+public class KafkaConsumerPool implements Serializable {
 
 	private static final long serialVersionUID = -1913028296093224674L;
 
-	private transient ConcurrentLinkedQueue<KafkaProducer<String, String>> pool;
+	private transient ConcurrentLinkedQueue<KafkaConsumer<String, String>> pool;
 
 	private ScheduledExecutorService executorService;
 
@@ -34,7 +34,7 @@ public class KafkaProducerPool implements Serializable {
 	 * @param minIdle
 	 *            minimum number of objects residing in the pool
 	 */
-	public KafkaProducerPool(final int minIdle, final Properties properties) {
+	public KafkaConsumerPool(final int minIdle, final Properties properties) {
 		// initialize pool
 		this.properties = properties;
 		this.minIdle = minIdle;
@@ -56,7 +56,7 @@ public class KafkaProducerPool implements Serializable {
 	 *            number of objects is greater than maxIdle, too many instances
 	 *            will be removed.
 	 */
-	public KafkaProducerPool(final int minIdle, final int maxIdle,
+	public KafkaConsumerPool(final int minIdle, final int maxIdle,
 			final long validationInterval, final Properties properties) {
 		// initialize pool
 		this.properties = properties;
@@ -72,7 +72,7 @@ public class KafkaProducerPool implements Serializable {
 				if (size < minIdle) {
 					int sizeToBeAdded = minIdle - size;
 					for (int i = 0; i < sizeToBeAdded; i++) {
-						pool.add(createProducer());
+						pool.add(createConsumer());
 					}
 				} else if (size > maxIdle) {
 					int sizeToBeRemoved = size - maxIdle;
@@ -91,12 +91,12 @@ public class KafkaProducerPool implements Serializable {
 	 *
 	 * @return T borrowed object
 	 */
-	public synchronized KafkaProducer<String, String> borrowProducer() {
+	public synchronized KafkaConsumer<String, String> borrowConsumer() {
 		if (pool == null)
 			initialize();
-		KafkaProducer<String, String> object;
+		KafkaConsumer<String, String> object;
 		if ((object = pool.poll()) == null) {
-			object = createProducer();
+			object = createConsumer();
 		}
 
 		return object;
@@ -108,11 +108,12 @@ public class KafkaProducerPool implements Serializable {
 	 * @param object
 	 *            object to be returned
 	 */
-	public void returnProducer(KafkaProducer<String, String> producer) {
-		if (producer == null) {
+	public void returnConsumer(KafkaConsumer<String, String> Consumer) {
+		if (Consumer == null) {
 			return;
 		}
-		this.pool.offer(producer);
+
+		this.pool.offer(Consumer);
 	}
 
 	/**
@@ -120,37 +121,29 @@ public class KafkaProducerPool implements Serializable {
 	 */
 	public void shutdown() {
 		if (executorService != null) {
-			KafkaProducer<String, String> producer;
-			while ((producer = pool.poll()) != null) {
-				producer.close();
+			KafkaConsumer<String, String> Consumer;
+			while ((Consumer = pool.poll()) != null) {
+				Consumer.close();
 			}
 			executorService.shutdown();
 		}
 	}
 
 	/**
-	 * Creates a new producer.
+	 * Creates a new Consumer.
 	 *
 	 * @return T new object
 	 */
-	private KafkaProducer<String, String> createProducer() {
-		KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
-		return producer;
+	private KafkaConsumer<String, String> createConsumer() {
+		KafkaConsumer<String, String> Consumer = new KafkaConsumer<>(properties);
+		return Consumer;
 	}
 
 	private void initialize() {
-		pool = new ConcurrentLinkedQueue<KafkaProducer<String, String>>();
+		pool = new ConcurrentLinkedQueue<KafkaConsumer<String, String>>();
 
 		for (int i = 0; i < minIdle; i++) {
-			pool.add(createProducer());
-		}
-	}
-
-	public void closeAll() {
-		KafkaProducer<String, String> object;
-		while ((object = pool.poll()) != null) {
-			object.flush();
-			object.close();
+			pool.add(createConsumer());
 		}
 	}
 }
