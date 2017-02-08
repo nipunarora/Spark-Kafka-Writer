@@ -23,25 +23,25 @@ import org.apache.spark.scheduler.SparkListenerTaskGettingResult;
 import org.apache.spark.scheduler.SparkListenerTaskStart;
 import org.apache.spark.scheduler.SparkListenerUnpersistRDD;
 
-import kafka.kafka.writer.KafkaProducerPool;
+import kafka.kafka.writer.KafkaProducerPoolUtil;
 
 public class SparkJobListener implements SparkListener, JobListener, Serializable {
 
 	private final KafkaConsumerPool kafkaConsumerPool;
-	private final KafkaProducerPool kafkaProducerPool;
+	private final KafkaProducerPoolUtil kafkaProducerPoolUtil;
 	private final String topic;
 
 	public SparkJobListener(final KafkaConsumerPool kafkaConsumerPool,
-			final KafkaProducerPool kafkaProducerPool, final String topic) {
+							final KafkaProducerPoolUtil kafkaProducerPoolUtil, final String topic) {
 		this.kafkaConsumerPool = kafkaConsumerPool;
-		this.kafkaProducerPool = kafkaProducerPool;
+		this.kafkaProducerPoolUtil = kafkaProducerPoolUtil;
 		this.topic = topic;
 	}
 
 	@Override
 	public void onApplicationEnd(SparkListenerApplicationEnd arg0) {
 		System.out.println("SparkJobListener -> onApplicationEnd -> closing all producers");
-		kafkaProducerPool.closeAll();
+		kafkaProducerPoolUtil.closeAll();
 	}
 
 	@Override

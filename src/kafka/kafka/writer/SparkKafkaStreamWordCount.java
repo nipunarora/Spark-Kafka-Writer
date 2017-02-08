@@ -1,20 +1,21 @@
 package kafka.kafka.writer;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Properties;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import kafka.serializer.StringDecoder;
 
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.streaming.Duration;
+import org.apache.spark.streaming.Time;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaPairInputDStream;
@@ -99,8 +100,10 @@ public class SparkKafkaStreamWordCount implements Serializable {
 			}
 		});
 
-
-		Properties props = new Properties();
+		/**
+		 * Properties to Kafka
+		 * */
+		final Properties props = new Properties();
 		props.put("bootstrap.servers", "arya.nec-labs.com:2181");
 		props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 		props.put("value.serializer","org.apache.kafka.common.serialization.StringSerializer");
@@ -110,12 +113,31 @@ public class SparkKafkaStreamWordCount implements Serializable {
 		props.put("auto.offset.reset", "earliest");
 		props.put("group.id", "test-group");
 		props.put("auto.commit.enable", "false");
+		final String outputTopic = "OutputTopic";
+		/*****/
 
 		wordCount.print(2);
-
-		JavaDStreamKafkaWriter writer = JavaDStreamKafkaWriterFactory.getKafkaWriter(wordCount, props, "oututTopic", true);
-		writer.writeToKafka();
-
+		wordCount.foreachRDD(new Function2<JavaRDD<Tuple2<String, String>>, Time, Void>() {
+			@Override
+			public Void call(JavaRDD<Tuple2<String, String>> tuple2JavaRDD, Time time) throws Exception {
+				 tuple2JavaRDD.foreachPartition(new VoidFunction<Iterator<Tuple2<String, String>>>() {
+					@Override
+					public void call(Iterator<Tuple2<String, String>> iterator) throws Exception {
+						/**
+						 * Now writing to Kafka
+						 * */
+						KafkaProducerPoolUtil pool = KafkaProducerPoolUtil.getInstance(3,props);
+						KafkaProducer<String, String> producer =  pool.borrowProducer();
+						while (iterator.hasNext()) {
+							KafkaProducerPoolUtil.writeToKafka(outputTopic, iterator.next() , true , producer);
+						}
+						pool.returnProducer(producer);
+						/***/
+					}
+				});
+			return null;
+			}
+		});
 		ssc.start();
 		ssc.awaitTermination();
 	}
